@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import statistics
+from fastapi import Response
 
 app = FastAPI()
 
@@ -71,6 +72,10 @@ def get_metrics(region, threshold):
         "avg_uptime": avg_uptime,
         "breaches": breaches
     }
+
+@app.options("/")
+async def options_handler():
+    return Response(status_code=200)
 
 @app.post("/")
 async def post_metrics(request: Request):
