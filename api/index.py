@@ -91,6 +91,40 @@ telemetry_raw = [
 # def root():
 #     return {"status": "working"}
 
+# def get_metrics(region, threshold):
+#     region_records = [r for r in telemetry_raw if r["region"] == region]
+#     latencies = [r["latency_ms"] for r in region_records]
+#     uptimes = [r["uptime_pct"] for r in region_records]
+#     breaches = sum(l > threshold for l in latencies)
+#     sorted_latencies = sorted(latencies)
+#     if sorted_latencies:
+#         idx = max(int(0.95 * len(sorted_latencies)) - 1, 0)
+#         p95 = sorted_latencies[idx]
+#         avg_latency = round(statistics.mean(latencies), 2)
+#         avg_uptime = round(statistics.mean(uptimes), 3)
+#     else:
+#         p95 = avg_latency = avg_uptime = 0
+#     return {
+#         "region": region,
+#         "avg_latency": avg_latency,
+#         "p95_latency": round(p95, 2),
+#         "avg_uptime": avg_uptime,
+#         "breaches": breaches
+#     }
+def percentile(vals, perc):
+    # vals must be sorted!
+    if not vals:
+        return 0
+    k = perc * (len(vals) - 1)
+    f = int(k)
+    c = f + 1
+    if c < len(vals):
+        # linear interpolation
+        return round(vals[f] + (vals[c] - vals[f]) * (k - f), 2)
+    else:
+        # cap at last value
+        return round(vals[-1], 2)
+
 def get_metrics(region, threshold):
     region_records = [r for r in telemetry_raw if r["region"] == region]
     latencies = [r["latency_ms"] for r in region_records]
@@ -98,8 +132,7 @@ def get_metrics(region, threshold):
     breaches = sum(l > threshold for l in latencies)
     sorted_latencies = sorted(latencies)
     if sorted_latencies:
-        idx = max(int(0.95 * len(sorted_latencies)) - 1, 0)
-        p95 = sorted_latencies[idx]
+        p95 = percentile(sorted_latencies, 0.95)
         avg_latency = round(statistics.mean(latencies), 2)
         avg_uptime = round(statistics.mean(uptimes), 3)
     else:
@@ -107,7 +140,7 @@ def get_metrics(region, threshold):
     return {
         "region": region,
         "avg_latency": avg_latency,
-        "p95_latency": round(p95, 2),
+        "p95_latency": p95,
         "avg_uptime": avg_uptime,
         "breaches": breaches
     }
