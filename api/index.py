@@ -53,12 +53,49 @@ telemetry_raw = [
     {"region": "amer", "service": "catalog", "latency_ms": 104.13, "uptime_pct": 99.01, "timestamp": 20250312}
 ]
 
+# def get_metrics(region, threshold):
+#     region_records = [r for r in telemetry_raw if r["region"] == region]
+#     latencies = [r["latency_ms"] for r in region_records]
+#     uptimes = [r["uptime_pct"] for r in region_records]
+#     breaches = sum(l > threshold for l in latencies)
+#     # 95th percentile (manual)
+#     sorted_latencies = sorted(latencies)
+#     if sorted_latencies:
+#         idx = max(int(0.95 * len(sorted_latencies)) - 1, 0)
+#         p95 = sorted_latencies[idx]
+#         avg_latency = round(statistics.mean(latencies), 2)
+#         avg_uptime = round(statistics.mean(uptimes), 3)
+#     else:
+#         p95 = avg_latency = avg_uptime = 0
+#     return {
+#         "avg_latency": avg_latency,
+#         "p95_latency": round(p95, 2),
+#         "avg_uptime": avg_uptime,
+#         "breaches": breaches
+#     }
+
+# @app.options("/")
+# async def options_handler():
+#     return Response(status_code=200)
+
+# @app.post("/")
+# async def post_metrics(request: Request):
+#     body = await request.json()
+#     regions = body.get("regions", [])
+#     threshold = body.get("threshold_ms", 0)
+#     resp = {region: get_metrics(region, threshold) for region in regions}
+#     return resp
+
+# # Root GET for quick status check
+# @app.get("/")
+# def root():
+#     return {"status": "working"}
+
 def get_metrics(region, threshold):
     region_records = [r for r in telemetry_raw if r["region"] == region]
     latencies = [r["latency_ms"] for r in region_records]
     uptimes = [r["uptime_pct"] for r in region_records]
     breaches = sum(l > threshold for l in latencies)
-    # 95th percentile (manual)
     sorted_latencies = sorted(latencies)
     if sorted_latencies:
         idx = max(int(0.95 * len(sorted_latencies)) - 1, 0)
@@ -68,6 +105,7 @@ def get_metrics(region, threshold):
     else:
         p95 = avg_latency = avg_uptime = 0
     return {
+        "region": region,
         "avg_latency": avg_latency,
         "p95_latency": round(p95, 2),
         "avg_uptime": avg_uptime,
@@ -83,10 +121,9 @@ async def post_metrics(request: Request):
     body = await request.json()
     regions = body.get("regions", [])
     threshold = body.get("threshold_ms", 0)
-    resp = {region: get_metrics(region, threshold) for region in regions}
-    return resp
+    resp = [get_metrics(region, threshold) for region in regions]
+    return {"regions": resp}
 
-# Root GET for quick status check
 @app.get("/")
 def root():
     return {"status": "working"}
